@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>Панель управления недвижимостью</title>
+  <script>
+    (function () {
+      try {
+        var root = document.documentElement;
+        var savedTheme = localStorage.getItem('theme');
+        var savedAccent = localStorage.getItem('accent');
+        function systemTheme() {
+          return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+        }
+        root.setAttribute('data-theme', savedTheme || systemTheme());
+        function hexToRgb(hex) {
+          hex = (hex || '').replace('#', '').trim();
+          if (hex.length === 3) hex = hex.split('').map(function (c) { return c + c; }).join('');
+          if (hex.length !== 6) return null;
+          var num = parseInt(hex, 16);
+          return [(num >> 16) & 255, (num >> 8) & 255, num & 255];
+        }
+        if (savedAccent) {
+          var rgb = hexToRgb(savedAccent);
+          if (rgb) {
+            root.style.setProperty('--accent', savedAccent);
+            root.style.setProperty('--accent-rgb', rgb.join(', '));
+          }
+        }
+      } catch (e) {}
+    })();
+  </script>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <a class="skip-link" href="#properties-section">Перейти к основному контенту</a>
+
+  <header class="app-header">
+    <button type="button" class="hamburger" id="btn-menu" aria-label="Открыть меню" aria-controls="sidebar" aria-expanded="false">
+      <span class="hamburger__line"></span>
+      <span class="hamburger__line"></span>
+      <span class="hamburger__line"></span>
+    </button>
+    <section class="app-header__titles">
+      <h1>Панель недвижимости</h1>
+      <p>Управление объектами, корпусами и квартирами</p>
+    </section>
+    <section class="theme-controls" role="group" aria-label="Настройки оформления">
+      <label class="theme-select-label" for="theme-select">
+        <span class="visually-hidden">Тема</span>
+        <select id="theme-select" class="theme-select" aria-label="Выбор темы">
+          <option value="light">Светлая</option>
+          <option value="dark">Тёмная</option>
+          <option value="solarized">Solarized</option>
+        </select>
+      </label>
+      <label class="accent-picker" for="accent-color" title="Акцентный цвет">
+        <span class="visually-hidden">Акцентный цвет</span>
+        <input type="color" id="accent-color" value="#3b82f6" aria-label="Акцентный цвет" />
+      </label>
+      <button type="button" id="btn-reset-theme" class="btn btn-secondary btn-icon" title="Сбросить оформление">↺</button>
+    </section>
+  </header>
+
+  <nav class="sidebar-overlay" id="sidebar-overlay" data-close hidden aria-hidden="true"></nav>
+  <aside class="sidebar" id="sidebar" aria-label="Боковая навигация">
+    <nav class="sidebar__nav">
+      <a href="#properties-section" class="sidebar__link is-active">Объекты</a>
+      <a href="#apartments-section" class="sidebar__link">Квартиры</a>
+      <a href="#buildings-section" class="sidebar__link">Корпуса</a>
+    </nav>
+  </aside>
+
+  <main class="container" id="main-content">
+    <section id="properties-section" class="section-block">
+      <header class="section-header">
+        <h2>Объекты недвижимости</h2>
+        <form class="filters" id="filters-form" aria-label="Фильтры объектов">
+          <label class="filter-field" for="search-properties">
+            <span>Поиск</span>
+            <input type="search" id="search-properties" placeholder="Поиск по названию..." />
+          </label>
+          <label class="filter-field" for="filter-priority">
+            <span>Приоритет</span>
+            <select id="filter-priority">
+              <option value="all">Все приоритеты</option>
+              <option value="high">Высокий</option>
+              <option value="medium">Средний</option>
+              <option value="low">Низкий</option>
+            </select>
+          </label>
+          <fieldset class="filter-checkboxes">
+            <legend>Статус продаж</legend>
+            <label class="checkbox"><input type="checkbox" name="sale-status" value="available" checked /><span>В продаже</span></label>
+            <label class="checkbox"><input type="checkbox" name="sale-status" value="reserved" checked /><span>Бронь</span></label>
+            <label class="checkbox"><input type="checkbox" name="sale-status" value="sold" checked /><span>Продана</span></label>
+          </fieldset>
+          <fieldset class="filter-radio">
+            <legend>Вид</legend>
+            <label class="radio"><input type="radio" name="view-mode" value="grid" checked /><span>Сетка</span></label>
+            <label class="radio"><input type="radio" name="view-mode" value="list" /><span>Список</span></label>
+          </fieldset>
+          <button type="reset" id="btn-reset-filters" class="btn btn-secondary">Сбросить</button>
+        </form>
+      </header>
+
+      <section class="tabs" aria-label="Разделы данных">
+        <nav class="tabs__nav" role="tablist" aria-label="Переключение разделов">
+          <button role="tab" id="tab-properties" aria-controls="panel-properties" aria-selected="true" class="tabs__tab is-active" type="button">Объекты</button>
+          <button role="tab" id="tab-buildings" aria-controls="panel-buildings" aria-selected="false" class="tabs__tab" type="button" tabindex="-1">Корпуса</button>
+          <button role="tab" id="tab-apartments" aria-controls="panel-apartments" aria-selected="false" class="tabs__tab" type="button" tabindex="-1">Квартиры</button>
+        </nav>
+
+        <section id="panel-properties" role="tabpanel" aria-labelledby="tab-properties" class="tabs__panel">
+          <section id="properties-container" class="cards-grid" aria-live="polite"></section>
+          <section id="properties-empty" class="empty-state" hidden>
+            <p>По вашему запросу объектов не найдено.</p>
+          </section>
+        </section>
+
+        <section id="panel-buildings" role="tabpanel" aria-labelledby="tab-buildings" class="tabs__panel" hidden>
+          <section id="buildings-container" class="cards-grid" aria-live="polite"></section>
+        </section>
+
+        <section id="panel-apartments" role="tabpanel" aria-labelledby="tab-apartments" class="tabs__panel" hidden>
+          <header class="section-header">
+            <h2>Квартиры</h2>
+            <button id="btn-add-apartment" class="btn btn-primary" type="button">+ Добавить квартиру</button>
+          </header>
+          <section class="table-wrapper">
+            <table>
+              <caption>Список квартир с сортировкой</caption>
+              <thead>
+                <tr>
+                  <th scope="col"><button type="button" data-sort="id">ID <span aria-hidden="true">↕</span></button></th>
+                  <th scope="col"><button type="button" data-sort="roomType">Тип / Площадь <span aria-hidden="true">↕</span></button></th>
+                  <th scope="col"><button type="button" data-sort="price">Цена (₽) <span aria-hidden="true">↕</span></button></th>
+                  <th scope="col">Статус</th>
+                  <th scope="col">Корпус</th>
+                  <th scope="col">Действия</th>
+                </tr>
+              </thead>
+              <tbody id="apartments-table-body"></tbody>
+            </table>
+          </section>
+        </section>
+      </section>
+    </section>
+  </main>
+
+  <footer class="app-footer">
+    <p>Платформа для девелопера · <time datetime="2024-06-18">2024</time></p>
+  </footer>
+
+  <!-- Модальное окно деталей -->
+  <section id="details-modal" class="modal" role="dialog" aria-modal="true" aria-labelledby="modal-title" hidden>
+    <div class="modal-overlay" data-close></div>
+    <div class="modal-content" role="document">
+      <button type="button" class="modal-close" aria-label="Закрыть">&times;</button>
+      <header class="modal-header"><h3 id="modal-title">Детали объекта</h3></header>
+      <div class="modal-body" id="modal-body-content"></div>
+      <footer class="modal-footer">
+        <button type="button" id="btn-edit" class="btn btn-primary">Редактировать</button>
+        <button type="button" id="btn-cancel" class="btn btn-secondary">Отмена</button>
+      </footer>
+    </div>
+  </section>
+
+  <!-- Модальное окно формы квартиры -->
+  <section id="apartment-modal" class="modal" role="dialog" aria-modal="true" aria-labelledby="apartment-modal-title" hidden>
+    <div class="modal-overlay" data-close></div>
+    <div class="modal-content" role="document">
+      <button type="button" class="modal-close" aria-label="Закрыть">&times;</button>
+      <header class="modal-header"><h3 id="apartment-modal-title">Добавить квартиру</h3></header>
+      <form id="apartment-form" class="modal-body" novalidate>
+        <label class="form-field" for="apt-type">
+          <span>Тип</span>
+          <input id="apt-type" name="roomType" type="text" required minlength="2" aria-describedby="err-apt-type" />
+          <small class="field-error" id="err-apt-type" aria-live="polite"></small>
+        </label>
+        <label class="form-field" for="apt-area">
+          <span>Площадь, м²</span>
+          <input id="apt-area" name="area" type="number" step="0.1" required min="10" aria-describedby="err-apt-area" />
+          <small class="field-error" id="err-apt-area" aria-live="polite"></small>
+        </label>
+        <label class="form-field" for="apt-price">
+          <span>Цена, ₽</span>
+          <input id="apt-price" name="price" type="number" required min="100000" aria-describedby="err-apt-price" />
+          <small class="field-error" id="err-apt-price" aria-live="polite"></small>
+        </label>
+        <label class="form-field" for="apt-floor">
+          <span>Этаж</span>
+          <input id="apt-floor" name="floor" type="number" required min="1" aria-describedby="err-apt-floor" />
+          <small class="field-error" id="err-apt-floor" aria-live="polite"></small>
+        </label>
+      </form>
+      <footer class="modal-footer">
+        <button type="submit" form="apartment-form" class="btn btn-primary">Сохранить</button>
+        <button type="button" class="btn btn-secondary" data-close>Отмена</button>
+      </footer>
+    </div>
+  </section>
+
+  <section id="toast-container" class="toast-container" aria-live="polite" aria-atomic="false"></section>
+
+  <script type="module" src="app.js"></script>
+</body>
+</html>
